@@ -2306,18 +2306,20 @@ body {
 
 /* ── Sidebar overlay (mobile) ── */
 .sidebar-overlay {
-  display: none;
+  display: none;          /* hidden di desktop */
   position: fixed;
   inset: 0;
   background: rgba(15,23,42,0.45);
   z-index: 19;
   backdrop-filter: blur(2px);
   opacity: 0;
+  pointer-events: none;   /* tidak bisa diklik saat belum aktif */
   transition: opacity 0.3s ease;
 }
 
 .sidebar-overlay.show {
   opacity: 1;
+  pointer-events: auto;   /* bisa diklik untuk close sidebar */
 }
 
 /* ══════════════════════════════════
@@ -2365,7 +2367,7 @@ body {
   }
 
   .sidebar-overlay {
-    display: block;
+    display: block;  /* aktifkan di mobile, visibility dikontrol oleh .show */
   }
 
   /* Show hamburger */
