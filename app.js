@@ -276,6 +276,15 @@ function initDashboard() {
   });
 
   updateChart(7);
+
+  // Overlay → klik untuk tutup sidebar di mobile
+  const sidebarOverlayEl = document.getElementById('sidebarOverlay');
+  if (sidebarOverlayEl) {
+    sidebarOverlayEl.addEventListener('click', () => {
+      const sb = document.querySelector('.sidebar');
+      if (sb?.classList.contains('open')) toggleSidebar();
+    });
+  }
 }
 
 /* ── Logout ── */
