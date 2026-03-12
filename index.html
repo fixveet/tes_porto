@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login / Sign Up — PortoMaker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="auth-wrap">
+
+  <!-- LEFT SIDE -->
+  <div class="auth-left">
+    <a href="index.html" class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      PortoMaker
+    </a>
+    <div class="auth-left-content">
+      <div class="auth-left-tag">🚀 Free to start</div>
+      <h2 class="auth-left-title">Your career story<br>starts <span class="hi">right here</span></h2>
+      <p class="auth-left-sub">Build a portfolio that speaks louder than a resume. No design skills needed — just your story.</p>
+      <div class="auth-mockup">
+        <div class="mock-bar-sm">
+          <div class="mock-dots-sm">
+            <div class="mock-dot-sm"></div>
+            <div class="mock-dot-sm"></div>
+            <div class="mock-dot-sm"></div>
+          </div>
+          <span style="font-size:0.58rem;color:var(--text-light);flex:1;text-align:center">yourname.portomaker.app</span>
+        </div>
+        <div class="mock-body-sm">
+          <div class="mock-profile-row">
+            <div class="mock-av">SC</div>
+            <div>
+              <div class="mock-pname">Sarah Chen</div>
+              <div class="mock-prole">UI/UX Designer · Fresh Graduate</div>
+            </div>
+          </div>
+          <div class="mock-bar-sm-line mock-bar-sm-line--80"></div>
+          <div class="mock-bar-sm-line mock-bar-sm-line--60"></div>
+          <div class="mock-chips-sm">
+            <div class="mock-chip-sm mock-chip-sm--s"></div>
+            <div class="mock-chip-sm mock-chip-sm--m"></div>
+            <div class="mock-chip-sm mock-chip-sm--l"></div>
+          </div>
+        </div>
+      </div>
+      <div class="auth-social-proof" style="margin-top:24px">
+        <div class="proof-item">
+          <div class="proof-icon">⚡</div>
+          <div class="proof-text"><strong>Ready in 10 minutes.</strong> Guided prompts mean no blank-page panic.</div>
+        </div>
+        <div class="proof-item">
+          <div class="proof-icon">🎯</div>
+          <div class="proof-text"><strong>CCI Framework</strong> turns your experience into compelling stories.</div>
+        </div>
+      </div>
+    </div>
+    <div class="auth-left-bottom">
+      <div class="auth-avatars">
+        <div class="auth-avatar-stack">
+          <div class="auth-avatar-sm">AR</div>
+          <div class="auth-avatar-sm">BN</div>
+          <div class="auth-avatar-sm">CK</div>
+          <div class="auth-avatar-sm">DL</div>
+          <div class="auth-avatar-sm">EF</div>
+        </div>
+        <span class="auth-trust-text">Trusted by <strong>12,000+</strong> students</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="auth-right">
+    <div class="auth-box">
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
+        <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div class="auth-form active" id="loginForm">
+        <h2 class="auth-form-title">Welcome back 👋</h2>
+        <p class="auth-form-sub">Don't have an account? <a href="#" onclick="switchTab('signup')">Sign up free</a></p>
+        <div class="alert error" id="loginAlert"></div>
+        <div class="input-group">
+          <label class="input-label" for="loginEmail">Email address</label>
+          <div class="input-wrap">
+            <input class="input-field" type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="loginPassword">Password</label>
+          <div class="input-wrap">
+            <input class="input-field" type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+            <span class="input-icon" onclick="togglePassword('loginPassword', this)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+        <div class="forgot-row">
+          <a href="#" class="forgot-link" onclick="handleForgotPassword(event)">Forgot password?</a>
+        </div>
+        <button class="btn-submit" id="loginBtn" onclick="handleLogin()">
+          Log In
+          <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+        <p class="auth-switch">Don't have an account? <a href="#" onclick="switchTab('signup')">Sign up free →</a></p>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div class="auth-form" id="signupForm">
+        <h2 class="auth-form-title">Create your account ✦</h2>
+        <p class="auth-form-sub">Already have an account? <a href="#" onclick="switchTab('login')">Log in</a></p>
+        <div class="alert error" id="signupAlert"></div>
+        <div id="signupFormInner">
+          <div class="input-group row">
+            <div>
+              <label class="input-label" for="signupFirst">First name <span style="color:var(--red)">*</span></label>
+              <input class="input-field" type="text" id="signupFirst" placeholder="Sarah" autocomplete="given-name">
+            </div>
+            <div>
+              <label class="input-label" for="signupLast">Last name</label>
+              <input class="input-field" type="text" id="signupLast" placeholder="Chen" autocomplete="family-name">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="signupEmail">Email address <span style="color:var(--red)">*</span></label>
+            <div class="input-wrap">
+              <input class="input-field" type="email" id="signupEmail" placeholder="you@email.com" autocomplete="email">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="signupPassword">Password <span style="color:var(--red)">*</span></label>
+            <div class="input-wrap">
+              <input class="input-field" type="password" id="signupPassword" placeholder="At least 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)">
+              <span class="input-icon" onclick="togglePassword('signupPassword', this)">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+            </div>
+            <div class="password-strength" id="strengthWrap" style="display:none">
+              <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+              <div class="strength-label" id="strengthLabel"></div>
+            </div>
+          </div>
+          <div class="terms-row">
+            <div class="terms-checkbox" id="termsCheck" onclick="toggleTerms()"></div>
+            <p class="terms-text">I agree to PortoMaker's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+          </div>
+          <button class="btn-submit" id="signupBtn" onclick="handleSignup()">
+            Create My Portfolio — Free
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </button>
+          <p class="auth-switch">Already have an account? <a href="#" onclick="switchTab('login')">Log in →</a></p>
+        </div>
+      </div><!-- /signupForm -->
+
+    </div><!-- /auth-box -->
+  </div><!-- /auth-right -->
+</div><!-- /auth-wrap -->
+
+<script src="app.js"></script>
+</body>
+</html>
