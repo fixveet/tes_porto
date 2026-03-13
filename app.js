@@ -294,12 +294,16 @@ function handleLogout() {
 }
 
 /* ── Toast ── */
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  if (!el) return;
-  document.getElementById('toastMsg').textContent = msg;
+let toastTimer;
+function showToast(msg, type = '') {
+  const el  = document.getElementById('toast');
+  const txt = document.getElementById('toastMsg');
+  if (!el || !txt) return;
+  txt.textContent = msg;
+  el.className = 'toast' + (type ? ' ' + type : '');
   el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2200);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
 /* ── Copy link ── */
@@ -335,6 +339,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     const sidebar = document.querySelector('.sidebar');
     if (sidebar?.classList.contains('open')) toggleSidebar();
+    // Settings modals
+    closeModal('resetModal');
+    closeModal('deleteModal');
   }
 });
 
@@ -354,6 +361,18 @@ function updateChart(days) {
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard);
+document.addEventListener('DOMContentLoaded', () => {
+  initSettings();
+
+  // Sidebar overlay listener (settings page)
+  const overlay = document.getElementById('sidebarOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      const sb = document.querySelector('.sidebar');
+      if (sb?.classList.contains('open')) toggleSidebar();
+    });
+  }
+});
 
 
 /* ══════════════════════════════════════════════════════
@@ -1565,8 +1584,376 @@ function seedFromSession() {
   }
 }
 
+/* ══════════════════════════════════════════════════════
+   SETTINGS  (settings.html)
+══════════════════════════════════════════════════════ */
+const PM_SETTINGS_KEY = 'pm_settings';
+
+/* ── Storage helpers ── */
+function getUser() {
+  try { return JSON.parse(sessionStorage.getItem('pm_user')) || {}; }
+  catch { return {}; }
+}
+
+function saveUser(data) {
+  const current = getUser();
+  const updated = { ...current, ...data };
+  sessionStorage.setItem('pm_user', JSON.stringify(updated));
+  const accounts = getAccounts();
+  const idx = accounts.findIndex(a => a.email.toLowerCase() === updated.email.toLowerCase());
+  if (idx >= 0) accounts[idx] = { ...accounts[idx], ...data };
+  saveAccounts(accounts);
+}
+
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem(PM_SETTINGS_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveSettings(data) {
+  const current = getSettings();
+  localStorage.setItem(PM_SETTINGS_KEY, JSON.stringify({ ...current, ...data }));
+}
+
+/* ── Generate slug dari nama ── */
+function generateSlug(name) {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 30);
+}
+
+/* ── Alert helper khusus settings ── */
+function showSettingAlert(id, msg, type = 'error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `
+    <svg viewBox="0 0 24 24">${type === 'success'
+      ? '<polyline points="20 6 9 17 4 12"/>'
+      : '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+    }</svg>
+    ${msg}`;
+  el.className = `alert ${type} show`;
+}
+
+/* ── Init settings page ── */
+function initSettings() {
+  if (!document.querySelector('.settings-wrap')) return; // hanya jalan di settings.html
+
+  const user = getUser();
+  if (!user.email) { window.location.href = 'index.html'; return; }
+
+  const settings  = getSettings();
+  const nameParts = (user.name || '').split(' ');
+
+  // Sidebar info
+  const initials = (user.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.querySelectorAll('.sidebar-user-av').forEach(el => el.textContent = initials);
+  document.querySelectorAll('.sidebar-user-name').forEach(el => el.textContent = user.name || 'User');
+  const avInit = document.getElementById('avatarInitials');
+  if (avInit) avInit.textContent = initials;
+
+  // Profile form
+  const fFirst = document.getElementById('settingFirstName');
+  const fLast  = document.getElementById('settingLastName');
+  const fEmail = document.getElementById('settingEmail');
+  if (fFirst) fFirst.value = nameParts[0] || '';
+  if (fLast)  fLast.value  = nameParts.slice(1).join(' ') || '';
+  if (fEmail) fEmail.value = user.email || '';
+
+  // Avatar
+  if (settings.avatarUrl) {
+    const img = document.getElementById('avatarImg');
+    if (img) {
+      img.src = settings.avatarUrl;
+      img.style.display = 'block';
+      if (avInit) avInit.style.display = 'none';
+      const removeBtn = document.getElementById('removeAvatarBtn');
+      if (removeBtn) removeBtn.style.display = 'inline-flex';
+    }
+  }
+
+  // Slug
+  const savedSlug  = settings.slug || generateSlug(user.name || user.email || 'user');
+  const slugInput  = document.getElementById('slugInput');
+  const currentSlug = document.getElementById('currentSlug');
+  if (slugInput)   slugInput.value = savedSlug;
+  if (currentSlug) currentSlug.textContent = 'portomaker.app/u/' + savedSlug;
+
+  // Notifications
+  const notif = settings.notifications || {};
+  toggleClass('notifViews',     notif.views     !== false);
+  toggleClass('notifVisitors',  notif.visitors  !== false);
+  toggleClass('notifUpdates',   !!notif.updates);
+  toggleClass('notifMarketing', !!notif.marketing);
+
+  // Plan since
+  const account = findAccount(user.email);
+  const memberSince = document.getElementById('memberSince');
+  if (account?.createdAt && memberSince) {
+    const d = new Date(account.createdAt);
+    memberSince.textContent = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
+}
+
+function toggleClass(id, on) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('on', on);
+}
+
+/* ── Avatar ── */
+function handleAvatarUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Max file size is 5MB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const url = e.target.result;
+    const img = document.getElementById('avatarImg');
+    const avInit = document.getElementById('avatarInitials');
+    const removeBtn = document.getElementById('removeAvatarBtn');
+    if (img) { img.src = url; img.style.display = 'block'; }
+    if (avInit) avInit.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+    saveSettings({ avatarUrl: url });
+    showToast('Photo updated ✓', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAvatar() {
+  const img = document.getElementById('avatarImg');
+  const avInit = document.getElementById('avatarInitials');
+  const removeBtn = document.getElementById('removeAvatarBtn');
+  if (img) { img.style.display = 'none'; img.src = ''; }
+  if (avInit) avInit.style.display = '';
+  if (removeBtn) removeBtn.style.display = 'none';
+  const s = getSettings();
+  delete s.avatarUrl;
+  localStorage.setItem(PM_SETTINGS_KEY, JSON.stringify(s));
+  showToast('Photo removed');
+}
+
+/* ── Save profile ── */
+function saveProfile() {
+  hideAlert('profileAlert');
+  const first = document.getElementById('settingFirstName').value.trim();
+  const last  = document.getElementById('settingLastName').value.trim();
+  if (!first) { showSettingAlert('profileAlert', 'First name is required.'); return; }
+  const name = `${first} ${last}`.trim();
+  saveUser({ name });
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.querySelectorAll('.sidebar-user-name').forEach(el => el.textContent = name);
+  document.querySelectorAll('.sidebar-user-av').forEach(el => el.textContent = initials);
+  const avInit = document.getElementById('avatarInitials');
+  if (avInit) avInit.textContent = initials;
+  showSettingAlert('profileAlert', 'Profile saved!', 'success');
+  showToast('Profile updated ✓', 'success');
+}
+
+/* ── Slug / URL ── */
+let slugTimer;
+let slugValid = false;
+
+function onSlugInput(raw) {
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+  const input = document.getElementById('slugInput');
+  if (cleaned !== raw) {
+    const pos = input.selectionStart - (raw.length - cleaned.length);
+    input.value = cleaned;
+    input.setSelectionRange(pos, pos);
+  }
+  hideAlert('slugAlert');
+  const saveBtn   = document.getElementById('saveSlugBtn');
+  const statBadge = document.getElementById('slugStatus');
+  const statusEl  = document.getElementById('slugWrap');
+  if (saveBtn) saveBtn.disabled = true;
+  slugValid = false;
+  if (cleaned.length < 3) {
+    if (statusEl)  statusEl.className = 'slug-wrap';
+    if (statBadge) statBadge.style.display = 'none';
+    return;
+  }
+  if (statBadge) {
+    statBadge.style.display = 'flex';
+    statBadge.className = 'slug-status checking';
+    statBadge.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg> Checking...`;
+  }
+  if (statusEl) statusEl.className = 'slug-wrap';
+  clearTimeout(slugTimer);
+  slugTimer = setTimeout(() => checkSlugAvailability(cleaned), 600);
+}
+
+function checkSlugAvailability(slug) {
+  const statusEl  = document.getElementById('slugWrap');
+  const statBadge = document.getElementById('slugStatus');
+  const saveBtn   = document.getElementById('saveSlugBtn');
+  const settings  = getSettings();
+  const currentSlug = settings.slug || generateSlug(getUser().name || '');
+  const takenSlugs = ['admin', 'portomaker', 'dashboard', 'editor', 'settings', 'help', 'home', 'login'];
+  const isTaken = takenSlugs.includes(slug) && slug !== currentSlug;
+  if (isTaken) {
+    if (statBadge) { statBadge.className = 'slug-status taken'; statBadge.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Taken`; }
+    if (statusEl) statusEl.className = 'slug-wrap error';
+    slugValid = false;
+    if (saveBtn) saveBtn.disabled = true;
+  } else {
+    if (statBadge) { statBadge.className = 'slug-status available'; statBadge.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Available`; }
+    if (statusEl) statusEl.className = 'slug-wrap success';
+    slugValid = true;
+    if (saveBtn) saveBtn.disabled = (slug === currentSlug);
+  }
+}
+
+function saveSlug() {
+  const slugInput = document.getElementById('slugInput');
+  const slug = slugInput ? slugInput.value : '';
+  hideAlert('slugAlert');
+  if (!slugValid && slug !== getSettings().slug) { showSettingAlert('slugAlert', 'Please pick an available URL first.'); return; }
+  if (slug.length < 3) { showSettingAlert('slugAlert', 'URL must be at least 3 characters.'); return; }
+  saveSettings({ slug });
+  const currentSlug = document.getElementById('currentSlug');
+  const saveBtn     = document.getElementById('saveSlugBtn');
+  const statBadge   = document.getElementById('slugStatus');
+  const statusEl    = document.getElementById('slugWrap');
+  if (currentSlug) currentSlug.textContent = 'portomaker.app/u/' + slug;
+  if (saveBtn)     saveBtn.disabled = true;
+  if (statBadge)   statBadge.style.display = 'none';
+  if (statusEl)    statusEl.className = 'slug-wrap';
+  showSettingAlert('slugAlert', 'Portfolio URL updated!', 'success');
+  showToast('URL updated ✓', 'success');
+}
+
+function copyPortfolioLink() {
+  const settings = getSettings();
+  const slug = settings.slug || generateSlug(getUser().name || 'me');
+  const url  = `https://portomaker.app/u/${slug}`;
+  navigator.clipboard?.writeText(url).catch(() => {});
+  showToast('Link copied! 🔗', 'success');
+}
+
+/* ── Password ── */
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.style.color = inp.type === 'text' ? 'var(--blue)' : '';
+}
+
+function checkPwStrength(val) {
+  const wrap  = document.getElementById('pwStrengthWrap');
+  const fill  = document.getElementById('pwStrengthFill');
+  const label = document.getElementById('pwStrengthLabel');
+  if (!wrap) return;
+  if (!val) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  let score = 0;
+  if (val.length >= 8)          score++;
+  if (/[A-Z]/.test(val))        score++;
+  if (/[0-9]/.test(val))        score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    { w: '25%',  c: '#EF4444', t: 'Weak' },
+    { w: '50%',  c: '#F59E0B', t: 'Fair' },
+    { w: '75%',  c: '#3B82F6', t: 'Good' },
+    { w: '100%', c: '#10B981', t: 'Strong 💪' },
+  ];
+  const l = levels[Math.min(score - 1, 3)] || levels[0];
+  fill.style.width      = l.w;
+  fill.style.background = l.c;
+  label.textContent     = l.t;
+  label.style.color     = l.c;
+}
+
+function savePassword() {
+  hideAlert('pwAlert');
+  const current = document.getElementById('currentPw').value;
+  const newPw   = document.getElementById('newPw').value;
+  const confirm = document.getElementById('confirmPw').value;
+  if (!current) { showSettingAlert('pwAlert', 'Enter your current password.'); return; }
+  if (newPw.length < 8) { showSettingAlert('pwAlert', 'New password must be at least 8 characters.'); return; }
+  if (newPw !== confirm) { showSettingAlert('pwAlert', "Passwords don't match."); return; }
+  document.getElementById('currentPw').value = '';
+  document.getElementById('newPw').value     = '';
+  document.getElementById('confirmPw').value = '';
+  const strengthWrap = document.getElementById('pwStrengthWrap');
+  if (strengthWrap) strengthWrap.style.display = 'none';
+  showSettingAlert('pwAlert', 'Password updated successfully!', 'success');
+  showToast('Password updated ✓', 'success');
+}
+
+/* ── Notifications ── */
+function toggleNotif(btn) {
+  btn.classList.toggle('on');
+}
+
+function saveNotifications() {
+  const settings = {
+    views:     document.getElementById('notifViews')?.classList.contains('on'),
+    visitors:  document.getElementById('notifVisitors')?.classList.contains('on'),
+    updates:   document.getElementById('notifUpdates')?.classList.contains('on'),
+    marketing: document.getElementById('notifMarketing')?.classList.contains('on'),
+  };
+  saveSettings({ notifications: settings });
+  showToast('Notification preferences saved ✓', 'success');
+}
+
+/* ── Danger zone modals ── */
+function openResetModal() {
+  const inp = document.getElementById('resetConfirmInput');
+  if (inp) inp.value = '';
+  const modal = document.getElementById('resetModal');
+  if (modal) modal.classList.add('show');
+}
+
+function openDeleteModal() {
+  const inp = document.getElementById('deleteConfirmInput');
+  if (inp) inp.value = '';
+  const modal = document.getElementById('deleteModal');
+  if (modal) modal.classList.add('show');
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+function confirmReset() {
+  const inp = document.getElementById('resetConfirmInput');
+  if (!inp) return;
+  if (inp.value.trim().toLowerCase() !== 'reset') {
+    inp.style.borderColor = 'var(--red)';
+    inp.placeholder = 'Type "reset" exactly';
+    return;
+  }
+  localStorage.removeItem('portomaker_data');
+  closeModal('resetModal');
+  showToast('Portfolio reset to default ✓', 'success');
+  setTimeout(() => window.location.href = 'editor.html', 1200);
+}
+
+function confirmDelete() {
+  const inp = document.getElementById('deleteConfirmInput');
+  if (!inp) return;
+  if (inp.value.trim().toLowerCase() !== 'delete') {
+    inp.style.borderColor = 'var(--red)';
+    inp.placeholder = 'Type "delete" exactly';
+    return;
+  }
+  const user = getUser();
+  const accounts = getAccounts().filter(a => a.email.toLowerCase() !== user.email.toLowerCase());
+  saveAccounts(accounts);
+  localStorage.removeItem('portomaker_data');
+  localStorage.removeItem(PM_SETTINGS_KEY);
+  sessionStorage.removeItem('pm_user');
+  window.location.href = 'index.html';
+}
+
 /* ════════════════════════════════════════
-   INIT
+   INIT  (editor)
 ════════════════════════════════════════ */
 populateMonthPickers();
 (() => {
